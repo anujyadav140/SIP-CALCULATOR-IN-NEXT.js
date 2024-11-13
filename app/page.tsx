@@ -13,6 +13,11 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 import Image from "next/image";
 
@@ -77,10 +82,10 @@ export default function Home() {
   const [stepUpPercentage, setStepUpPercentage] = useState(10);
   const [expectedReturn, setExpectedReturn] = useState(12);
   const [timePeriod, setTimePeriod] = useState(10);
+  const [viewMode, setViewMode] = useState("table"); // "table" or "chart"
 
   const calculateStepUpSIP = () => {
     const monthlyRate = expectedReturn / (12 * 100);
-    const months = timePeriod * 12;
     let futureValue = 0;
     let totalInvestment = 0;
     let investmentPerYear = [];
@@ -96,7 +101,8 @@ export default function Home() {
       investmentPerYear.push({
         year: year,
         monthlyInvestment: Math.round(currentInvestment),
-        totalInvestment: Math.round(yearInvestment),
+        yearlyInvestment: Math.round(yearInvestment),
+        futureValue: Math.round(futureValue),
       });
       // Increase the monthly investment at the start of each year
       currentInvestment += (currentInvestment * stepUpPercentage) / 100;
@@ -128,8 +134,7 @@ export default function Home() {
             Step-Up SIP Calculator
           </h1>
           <p className="text-muted-foreground">
-            Plan your financial future with our Step-Up Systematic Investment
-            Plan calculator
+            Plan your financial future with our Step-Up Systematic Investment Plan calculator
           </p>
         </div>
 
@@ -138,17 +143,13 @@ export default function Home() {
             <div className="space-y-6">
               {/* Monthly Investment */}
               <div className="space-y-2">
-                <Label htmlFor="monthly-investment">
-                  Monthly Investment (₹)
-                </Label>
+                <Label htmlFor="monthly-investment">Monthly Investment (₹)</Label>
                 <div className="flex flex-col">
                   <Input
                     id="monthly-investment"
                     type="number"
                     value={monthlyInvestment}
-                    onChange={(e) =>
-                      setMonthlyInvestment(Number(e.target.value))
-                    }
+                    onChange={(e) => setMonthlyInvestment(Number(e.target.value))}
                     className="text-lg"
                   />
                   <Slider
@@ -172,9 +173,7 @@ export default function Home() {
                     id="step-up"
                     type="number"
                     value={stepUpPercentage}
-                    onChange={(e) =>
-                      setStepUpPercentage(Number(e.target.value))
-                    }
+                    onChange={(e) => setStepUpPercentage(Number(e.target.value))}
                     className="text-lg"
                   />
                   <Slider
@@ -186,24 +185,19 @@ export default function Home() {
                   />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Your investment will increase by {stepUpPercentage}% every
-                  year
+                  Your investment will increase by {stepUpPercentage}% every year
                 </p>
               </div>
 
               {/* Expected Return */}
               <div className="space-y-2">
-                <Label htmlFor="expected-return">
-                  Expected Annual Return (%)
-                </Label>
+                <Label htmlFor="expected-return">Expected Annual Return (%)</Label>
                 <div className="flex flex-col">
                   <Input
                     id="expected-return"
                     type="number"
                     value={expectedReturn}
-                    onChange={(e) =>
-                      setExpectedReturn(Number(e.target.value))
-                    }
+                    onChange={(e) => setExpectedReturn(Number(e.target.value))}
                     className="text-lg"
                   />
                   <Slider
@@ -237,33 +231,73 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Investment Breakdown Table */}
+              {/* View Toggle Buttons */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`px-4 py-2 mr-2 rounded ${
+                    viewMode === "table"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+                >
+                  Table View
+                </button>
+                <button
+                  onClick={() => setViewMode("chart")}
+                  className={`px-4 py-2 rounded ${
+                    viewMode === "chart"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+                >
+                  Chart View
+                </button>
+              </div>
+
+              {/* Investment Breakdown */}
               <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <h3 className="font-semibold mb-4">
-                  Yearly Investment Breakdown
-                </h3>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="border-b py-2">Year</th>
-                      <th className="border-b py-2">Monthly Investment (₹)</th>
-                      <th className="border-b py-2">Yearly Investment (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.investmentPerYear.map((yearData, index) => (
-                      <tr key={index}>
-                        <td className="py-2">{yearData.year}</td>
-                        <td className="py-2">
-                          ₹{formatIndianNumber(yearData.monthlyInvestment)}
-                        </td>
-                        <td className="py-2">
-                          ₹{formatIndianNumber(yearData.totalInvestment)}
-                        </td>
+                <h3 className="font-semibold mb-4">Yearly Investment Breakdown</h3>
+                {viewMode === "table" ? (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="border-b py-2">Year</th>
+                        <th className="border-b py-2">Monthly Investment (₹)</th>
+                        <th className="border-b py-2">Yearly Investment (₹)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {results.investmentPerYear.map((yearData, index) => (
+                        <tr key={index}>
+                          <td className="py-2">{yearData.year}</td>
+                          <td className="py-2">
+                            ₹{formatIndianNumber(yearData.monthlyInvestment)}
+                          </td>
+                          <td className="py-2">
+                            ₹{formatIndianNumber(yearData.yearlyInvestment)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={results.investmentPerYear}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="year" />
+                      <YAxis tickFormatter={(value) => formatIndianNumber(value)} />
+                      <Tooltip formatter={(value: number) => `₹${formatIndianNumber(value)}`} />
+                      <Legend />
+                      <Bar dataKey="futureValue" fill="#8884d8" name="Future Value" />
+                      <Bar
+                        dataKey="yearlyInvestment"
+                        fill="#82ca9d"
+                        name="Yearly Investment"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </div>
           </Card>
@@ -272,10 +306,10 @@ export default function Home() {
           <div className="space-y-6">
             <Card className="p-4 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <Wallet className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">Total Investment</h3>
+                <Wallet className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-blue-600">Total Investment</h3>
               </div>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-2xl font-bold text-blue-600">
                 ₹{formatIndianNumber(results.totalInvestment)}
               </p>
             </Card>
@@ -283,7 +317,7 @@ export default function Home() {
             <Card className="p-4 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
                 <TrendingUp className="w-5 h-5 text-green-600" />
-                <h3 className="font-semibold">Estimated Returns</h3>
+                <h3 className="font-semibold text-green-600">Estimated Returns</h3>
               </div>
               <p className="text-2xl font-bold text-green-600">
                 ₹{formatIndianNumber(results.estimatedReturns)}
@@ -292,23 +326,22 @@ export default function Home() {
 
             <Card className="p-4 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <DollarSign className="w-5 h-5 text-yellow-500" />
+                <h2>₹</h2>
                 <h3 className="font-semibold">Future Value</h3>
               </div>
-              <p className="text-2xl font-bold text-yellow-500">
+              <p className="text-2xl font-bold text-primary">
                 ₹{formatIndianNumber(results.futureValue)}
               </p>
             </Card>
 
             {/* Investment Breakdown Chart */}
             <Card className="p-4 shadow-lg">
-              <h3 className="font-semibold mb-4 text-center">
-                Investment Breakdown
-              </h3>
+              <h3 className="font-semibold mb-4 text-center">Investment Breakdown</h3>
               <div className="w-full h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
+                      key={`${results.totalInvestment}-${results.estimatedReturns}`}
                       data={chartData}
                       cx="50%"
                       cy="50%"
